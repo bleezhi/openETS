@@ -140,12 +140,41 @@ func _make_truck() -> void:
 	truck_root.add_child(headlight_right)
 	_add_box_to(truck_root, "Trailer", Vector3(0, 2.05, 3.65), Vector3(2.45, 2.65, 5.6), _mat(Color(0.77, 0.78, 0.74), 0.8))
 	_add_box_to(truck_root, "TrailerFront", Vector3(0, 2.05, 0.85), Vector3(2.25, 2.5, 0.12), _mat(Color(0.65, 0.66, 0.64), 0.8))
+	_make_cockpit()
 
 	for x: float in [-1.12, 1.12]:
 		for z: float in [-1.8, 0.0, 3.1, 4.1, 5.0]:
 			var wheel := _cylinder("Wheel", Vector3(x, 0.55, z), 0.42, 0.28, wheel_material)
 			wheel.rotation_degrees.z = 90
 			truck_root.add_child(wheel)
+
+func _make_cockpit() -> void:
+	var dash_mat := _mat(Color(0.075, 0.085, 0.09), 0.72)
+	var trim_mat := _mat(Color(0.22, 0.23, 0.24), 0.45)
+	var screen_mat := _mat(Color(0.025, 0.13, 0.16), 0.25)
+	var seat_mat := _mat(Color(0.09, 0.095, 0.10), 0.95)
+	_add_box_to(truck_root, "Dashboard", Vector3(0, 1.52, -2.03), Vector3(1.92, 0.34, 0.58), dash_mat)
+	_add_box_to(truck_root, "DashboardTop", Vector3(0, 1.72, -1.98), Vector3(1.95, 0.08, 0.52), trim_mat)
+	_add_box_to(truck_root, "InstrumentCluster", Vector3(0, 1.72, -1.79), Vector3(0.66, 0.20, 0.06), screen_mat)
+	_add_box_to(truck_root, "CenterDisplay", Vector3(0.58, 1.72, -1.94), Vector3(0.30, 0.18, 0.035), screen_mat)
+	_add_box_to(truck_root, "CenterConsole", Vector3(0.55, 1.18, -1.22), Vector3(0.42, 0.42, 0.64), dash_mat)
+	_add_box_to(truck_root, "DriverSeatBase", Vector3(-0.48, 0.95, -0.42), Vector3(0.78, 0.28, 0.82), seat_mat)
+	_add_box_to(truck_root, "DriverSeatBack", Vector3(-0.48, 1.45, 0.0), Vector3(0.78, 0.88, 0.24), seat_mat)
+	_add_box_to(truck_root, "PassengerSeatBase", Vector3(0.55, 0.95, -0.42), Vector3(0.78, 0.28, 0.82), seat_mat)
+	_add_box_to(truck_root, "PassengerSeatBack", Vector3(0.55, 1.45, 0.0), Vector3(0.78, 0.88, 0.24), seat_mat)
+	var wheel := MeshInstance3D.new()
+	wheel.name = "SteeringWheel"
+	var wheel_mesh := TorusMesh.new()
+	wheel_mesh.inner_radius = 0.25
+	wheel_mesh.outer_radius = 0.31
+	wheel.mesh = wheel_mesh
+	wheel.position = Vector3(-0.48, 1.66, -1.58)
+	wheel.rotation_degrees.x = 90.0
+	wheel.material_override = trim_mat
+	truck_root.add_child(wheel)
+	_add_box_to(truck_root, "SteeringColumn", Vector3(-0.48, 1.43, -1.42), Vector3(0.13, 0.35, 0.20), dash_mat)
+	_add_box_to(truck_root, "LeftDoorTrim", Vector3(-1.04, 1.55, -1.18), Vector3(0.08, 0.22, 1.25), trim_mat)
+	_add_box_to(truck_root, "RightDoorTrim", Vector3(1.04, 1.55, -1.18), Vector3(0.08, 0.22, 1.25), trim_mat)
 
 func _make_camera() -> void:
 	camera = Camera3D.new()
@@ -282,7 +311,7 @@ func _update_camera(delta: float) -> void:
 		camera.global_position = camera.global_position.lerp(desired, 1.0 if delta == 0.0 else minf(delta * 4.0, 1.0))
 		camera.look_at(truck_root.global_position + Vector3(0, 1.4, 0), Vector3.UP)
 	else:
-		var cockpit_pos := truck_root.global_position + Vector3(0.0, 2.45, -1.65).rotated(Vector3.UP, heading)
+		var cockpit_pos := truck_root.global_position + Vector3(-0.12, 2.18, -1.48).rotated(Vector3.UP, heading)
 		camera.global_position = cockpit_pos
 		camera.rotation = Vector3(0.0, heading, 0.0)
 
