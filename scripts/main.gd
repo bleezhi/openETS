@@ -14,6 +14,16 @@ var truck_position := Vector3(0.0, 0.0, 0.0)
 var heading := 0.0
 var third_person := false
 var paused := false
+var headlights_on := false
+var left_indicator_on := false
+var right_indicator_on := false
+var cruise_control := false
+var cruise_speed := 22.0
+var headlight_left: OmniLight3D
+var headlight_right: OmniLight3D
+var left_lamp_material: StandardMaterial3D
+var right_lamp_material: StandardMaterial3D
+var brake_lamp_material: StandardMaterial3D
 
 var truck_root: Node3D
 var camera: Camera3D
@@ -41,6 +51,9 @@ func _make_materials() -> void:
 	truck_material = _mat(Color(0.78, 0.08, 0.055), 0.45)
 	glass_material = _mat(Color(0.12, 0.25, 0.31, 0.82), 0.25)
 	wheel_material = _mat(Color(0.035, 0.04, 0.045), 0.95)
+	left_lamp_material = _mat(Color(1.0, 0.55, 0.08), 0.3)
+	right_lamp_material = _mat(Color(1.0, 0.55, 0.08), 0.3)
+	brake_lamp_material = _mat(Color(0.8, 0.015, 0.01), 0.25)
 
 func _mat(color: Color, roughness: float) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -72,7 +85,7 @@ func _make_world() -> void:
 func _make_road() -> void:
 	var road := _box("Road", Vector3(0, -0.02, -ROAD_LENGTH * 0.45), Vector3(ROAD_WIDTH, 0.12, ROAD_LENGTH), road_material)
 	add_child(road)
-	for side in [-1.0, 1.0]:
+	for side: float in [-1.0, 1.0]:
 		var shoulder := _box("Shoulder", Vector3(side * (ROAD_WIDTH / 2.0 + 1.0), 0.0, -ROAD_LENGTH * 0.45), Vector3(2.0, 0.13, ROAD_LENGTH), _mat(Color(0.42, 0.40, 0.33), 1.0))
 		add_child(shoulder)
 		var line := _box("EdgeLine", Vector3(side * (ROAD_WIDTH / 2.0 - 0.22), 0.055, -ROAD_LENGTH * 0.45), Vector3(0.12, 0.025, ROAD_LENGTH), _mat(Color(0.92, 0.9, 0.78), 0.8))
@@ -88,7 +101,7 @@ func _make_roadside() -> void:
 	for i in range(100):
 		var z := -float(i) * 6.0 - 8.0
 		for side in [-1.0, 1.0]:
-			var x := side * rng.randf_range(10.0, 34.0)
+			var x: float = side * rng.randf_range(10.0, 34.0)
 			var height := rng.randf_range(2.5, 7.0)
 			var trunk := _box("TreeTrunk", Vector3(x, height * 0.32, z + rng.randf_range(-2.0, 2.0)), Vector3(0.45, height * 0.65, 0.45), _mat(Color(0.28, 0.17, 0.09), 1.0))
 			add_child(trunk)
@@ -107,11 +120,29 @@ func _make_truck() -> void:
 	_add_box_to(truck_root, "RightWindow", Vector3(1.135, 2.0, -1.35), Vector3(0.035, 0.78, 0.88), glass_material)
 	_add_box_to(truck_root, "Bumper", Vector3(0, 0.78, -2.48), Vector3(2.3, 0.28, 0.22), _mat(Color(0.72, 0.73, 0.72), 0.4))
 	_add_box_to(truck_root, "Grille", Vector3(0, 1.05, -2.49), Vector3(0.8, 0.42, 0.035), wheel_material)
+	_add_box_to(truck_root, "LeftHeadlamp", Vector3(-0.78, 1.0, -2.50), Vector3(0.34, 0.22, 0.06), _mat(Color(0.95, 0.9, 0.68), 0.2))
+	_add_box_to(truck_root, "RightHeadlamp", Vector3(0.78, 1.0, -2.50), Vector3(0.34, 0.22, 0.06), _mat(Color(0.95, 0.9, 0.68), 0.2))
+	_add_box_to(truck_root, "LeftIndicator", Vector3(-0.95, 0.78, -2.50), Vector3(0.18, 0.1, 0.05), left_lamp_material)
+	_add_box_to(truck_root, "RightIndicator", Vector3(0.95, 0.78, -2.50), Vector3(0.18, 0.1, 0.05), right_lamp_material)
+	_add_box_to(truck_root, "LeftBrakeLamp", Vector3(-0.82, 1.0, 2.73), Vector3(0.25, 0.2, 0.06), brake_lamp_material)
+	_add_box_to(truck_root, "RightBrakeLamp", Vector3(0.82, 1.0, 2.73), Vector3(0.25, 0.2, 0.06), brake_lamp_material)
+	headlight_left = OmniLight3D.new()
+	headlight_left.position = Vector3(-0.72, 1.05, -2.6)
+	headlight_left.omni_range = 32.0
+	headlight_left.light_energy = 2.2
+	headlight_left.visible = false
+	truck_root.add_child(headlight_left)
+	headlight_right = OmniLight3D.new()
+	headlight_right.position = Vector3(0.72, 1.05, -2.6)
+	headlight_right.omni_range = 32.0
+	headlight_right.light_energy = 2.2
+	headlight_right.visible = false
+	truck_root.add_child(headlight_right)
 	_add_box_to(truck_root, "Trailer", Vector3(0, 2.05, 3.65), Vector3(2.45, 2.65, 5.6), _mat(Color(0.77, 0.78, 0.74), 0.8))
 	_add_box_to(truck_root, "TrailerFront", Vector3(0, 2.05, 0.85), Vector3(2.25, 2.5, 0.12), _mat(Color(0.65, 0.66, 0.64), 0.8))
 
-	for x in [-1.12, 1.12]:
-		for z in [-1.8, 0.0, 3.1, 4.1, 5.0]:
+	for x: float in [-1.12, 1.12]:
+		for z: float in [-1.8, 0.0, 3.1, 4.1, 5.0]:
 			var wheel := _cylinder("Wheel", Vector3(x, 0.55, z), 0.42, 0.28, wheel_material)
 			wheel.rotation_degrees.z = 90
 			truck_root.add_child(wheel)
@@ -159,7 +190,7 @@ func _make_hud() -> void:
 	help_label.offset_top = -52
 	help_label.offset_right = -24
 	help_label.offset_bottom = -18
-	help_label.text = "W / S drive   A / D steer   SPACE brake   C change camera   ESC release mouse"
+	help_label.text = "W/S drive   A/D steer   SPACE brake   C camera   H lights   Q/E indicators   X cancel   K cruise   R reset   ESC mouse"
 	help_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	help_label.add_theme_font_size_override("font_size", 16)
 	hud.add_child(help_label)
@@ -179,6 +210,23 @@ func _unhandled_input(event: InputEvent) -> void:
 				truck_position = Vector3.ZERO
 				heading = 0.0
 				speed = 0.0
+			KEY_H:
+				headlights_on = not headlights_on
+				headlight_left.visible = headlights_on
+				headlight_right.visible = headlights_on
+			KEY_Q:
+				left_indicator_on = not left_indicator_on
+				right_indicator_on = false
+			KEY_E:
+				right_indicator_on = not right_indicator_on
+				left_indicator_on = false
+			KEY_X:
+				left_indicator_on = false
+				right_indicator_on = false
+			KEY_K:
+				cruise_control = not cruise_control
+				if cruise_control:
+					cruise_speed = maxf(speed, 8.0)
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
@@ -191,7 +239,9 @@ func _physics_process(delta: float) -> void:
 	reverse = maxf(reverse, float(Input.is_key_pressed(KEY_S)))
 	steer_input = float(Input.is_key_pressed(KEY_D)) - float(Input.is_key_pressed(KEY_A))
 
-	if Input.is_key_pressed(KEY_SPACE):
+	if cruise_control and not Input.is_key_pressed(KEY_SPACE) and throttle < 0.01 and reverse < 0.01:
+		speed = move_toward(speed, cruise_speed, ACCELERATION * 0.45 * delta)
+	elif Input.is_key_pressed(KEY_SPACE):
 		speed = move_toward(speed, 0.0, BRAKING * delta)
 	else:
 		speed += throttle * ACCELERATION * delta
@@ -216,6 +266,12 @@ func _physics_process(delta: float) -> void:
 	truck_root.position = truck_position
 	truck_root.rotation.y = heading
 	_update_camera(delta)
+	left_lamp_material.emission_enabled = left_indicator_on
+	right_lamp_material.emission_enabled = right_indicator_on
+	left_lamp_material.emission = Color(1.0, 0.28, 0.015)
+	right_lamp_material.emission = Color(1.0, 0.28, 0.015)
+	left_lamp_material.albedo_color = Color(1.0, 0.5, 0.03) if left_indicator_on else Color(0.3, 0.19, 0.08)
+	right_lamp_material.albedo_color = Color(1.0, 0.5, 0.03) if right_indicator_on else Color(0.3, 0.19, 0.08)
 	_update_hud()
 
 func _update_camera(delta: float) -> void:
@@ -235,7 +291,9 @@ func _update_hud() -> void:
 		return
 	speed_label.text = "%03d km/h" % int(round(absf(speed) * 3.6))
 	gear_label.text = "gear: " + ("R" if speed < -0.1 else ("N" if absf(speed) < 0.1 else str(clampi(int(absf(speed) / 5.0) + 1, 1, 8))))
-	view_label.text = "camera: " + ("chase" if third_person else "cockpit") + "   |   R reset"
+	view_label.text = "camera: " + ("chase" if third_person else "cockpit") + "   |   lights: " + ("on" if headlights_on else "off")
+	if cruise_control:
+		gear_label.text += "   |   cruise " + str(int(cruise_speed * 3.6)) + " km/h"
 
 func _box(label: String, pos: Vector3, size: Vector3, material: Material) -> MeshInstance3D:
 	var mesh_instance := MeshInstance3D.new()
