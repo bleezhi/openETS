@@ -31,6 +31,10 @@ godot --path .
 
 Depending on your package, the executable may be named `godot4`.
 
+## Main menu
+
+The game opens to a main menu with **Continue Driving**, **New Drive**, **Controls**, and **Quit**. New Drive resets the truck and returns to the cockpit view. Press Escape while driving to toggle mouse capture.
+
 ## Controls
 
 | Key | Action |
