@@ -14,6 +14,9 @@ var truck_position := Vector3(0.0, 0.0, 0.0)
 var heading := 0.0
 var third_person := false
 var paused := false
+var in_main_menu := true
+var menu_layer: CanvasLayer
+var menu_root: Control
 var headlights_on := false
 var left_indicator_on := false
 var right_indicator_on := false
@@ -44,7 +47,8 @@ func _ready() -> void:
 	_make_truck()
 	_make_camera()
 	_make_hud()
-	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	_make_main_menu()
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 
 func _make_materials() -> void:
 	road_material = _mat(Color(0.12, 0.13, 0.15), 0.95)
@@ -225,8 +229,102 @@ func _make_hud() -> void:
 	hud.add_child(help_label)
 	_update_hud()
 
+func _make_main_menu() -> void:
+	menu_layer = CanvasLayer.new()
+	menu_layer.layer = 10
+	add_child(menu_layer)
+	menu_root = Control.new()
+	menu_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	menu_layer.add_child(menu_root)
+	var shade := ColorRect.new()
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.color = Color(0.025, 0.04, 0.055, 0.82)
+	menu_root.add_child(shade)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	menu_root.add_child(center)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(480, 500)
+	center.add_child(panel)
+	var content := VBoxContainer.new()
+	content.alignment = BoxContainer.ALIGNMENT_CENTER
+	content.add_theme_constant_override("separation", 15)
+	panel.add_child(content)
+	var logo := Label.new()
+	logo.text = "openETS"
+	logo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	logo.add_theme_font_size_override("font_size", 52)
+	content.add_child(logo)
+	var subtitle := Label.new()
+	subtitle.text = "OPEN ROAD  •  OPEN SOURCE"
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.add_theme_font_size_override("font_size", 15)
+	content.add_child(subtitle)
+	content.add_child(HSeparator.new())
+	var drive_button := Button.new()
+	drive_button.text = "CONTINUE DRIVING"
+	drive_button.custom_minimum_size = Vector2(320, 54)
+	drive_button.pressed.connect(_start_driving)
+	content.add_child(drive_button)
+	var new_button := Button.new()
+	new_button.text = "NEW DRIVE  ·  RESET TRUCK"
+	new_button.custom_minimum_size = Vector2(320, 46)
+	new_button.pressed.connect(_new_drive)
+	content.add_child(new_button)
+	var controls_button := Button.new()
+	controls_button.text = "CONTROLS"
+	controls_button.custom_minimum_size = Vector2(320, 46)
+	controls_button.pressed.connect(_show_controls)
+	content.add_child(controls_button)
+	var quit_button := Button.new()
+	quit_button.text = "QUIT"
+	quit_button.custom_minimum_size = Vector2(320, 46)
+	quit_button.pressed.connect(_quit_game)
+	content.add_child(quit_button)
+	var footer := Label.new()
+	footer.text = "EARLY PROTOTYPE  ·  LINUX  ·  GODOT"
+	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	footer.add_theme_font_size_override("font_size", 12)
+	content.add_child(footer)
+
+func _start_driving() -> void:
+	in_main_menu = false
+	menu_layer.visible = false
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+
+func _new_drive() -> void:
+	truck_position = Vector3.ZERO
+	heading = 0.0
+	speed = 0.0
+	steering = 0.0
+	third_person = false
+	headlights_on = false
+	headlight_left.visible = false
+	headlight_right.visible = false
+	_update_camera(0.0)
+	_update_hud()
+	_start_driving()
+
+func _show_controls() -> void:
+	var dialog := AcceptDialog.new()
+	dialog.title = "openETS controls"
+	dialog.dialog_text = "W / S  Accelerate and reverse\nA / D  Steer\nSPACE  Brake\nC  Cockpit / chase camera\nH  Headlights\nQ / E  Indicators\nX  Cancel indicators\nK  Cruise control\nR  Reset truck\nESC  Release mouse"
+	add_child(dialog)
+	dialog.confirmed.connect(dialog.queue_free)
+	dialog.canceled.connect(dialog.queue_free)
+	dialog.popup_centered(Vector2i(460, 390))
+
+func _quit_game() -> void:
+	get_tree().quit()
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
+		if in_main_menu and event.keycode == KEY_ESCAPE:
+			return
+		if not in_main_menu and event.keycode == KEY_ESCAPE:
+			var pause_mode := Input.MOUSE_MODE_VISIBLE if Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED else Input.MOUSE_MODE_CAPTURED
+			Input.set_mouse_mode(pause_mode)
+			return
 		match event.keycode:
 			KEY_C:
 				third_person = not third_person
