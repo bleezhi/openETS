@@ -39,11 +39,18 @@ Depending on your package, the executable may be named `godot4`.
 | A / D | Steer |
 | Space | Brake |
 | C | Switch cockpit / chase camera |
+| H | Toggle headlights |
+| Q / E | Left / right indicator |
+| X | Cancel indicators |
+| K | Toggle cruise control |
 | R | Reset truck |
 | Esc | Toggle mouse capture |
 
 ## Roadmap
 
+- [x] Basic driving controls and speed HUD
+- [x] Cockpit and chase camera modes
+- [x] Headlights, indicators and cruise-control prototype
 - [ ] Better vehicle dynamics and collision handling
 - [ ] Proper cockpit mesh, dashboard and mirrors
 - [ ] Gearbox, engine audio, lights and indicators
@@ -62,3 +69,7 @@ Depending on your package, the executable may be named `godot4`.
 ## License
 
 The project is licensed under the MIT License. See `LICENSE`.
+
+## Current limitations
+
+This is an early prototype with placeholder geometry. The truck is currently controlled with a lightweight kinematic model; there is not yet a full rigid-body drivetrain, traffic, cargo economy, sound design, or a detailed European map. Cruise control is a basic prototype feature, and the indicator lamps are visual controls rather than a fully timed signal system.
